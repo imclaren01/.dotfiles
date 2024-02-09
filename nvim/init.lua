@@ -62,6 +62,13 @@ vim.o.completeopt = 'menuone,noselect'
 -- NOTE: You should make sure your terminal supports this
 vim.o.termguicolors = true
 
+-- Fix Tabs
+vim.o.expandtab = true
+vim.o.tabstop = 4
+vim.o.shiftwidth = 0
+vim.o.softtabstop = 0
+vim.o.autoindent = true
+
 -- [[ Basic Keymaps ]]
 
 -- Keymaps for better default experience
@@ -73,8 +80,9 @@ vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = tr
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
 --Keymap to set and unset relative/absolute line number (stolen from nvchad)
-vim.keymap.set('n', '<leader>m', '<cmd> set nu! <CR>', { desc = 'toggle line number'})
-vim.keymap.set('n', '<leader>rm', '<cmd> set rnu! <CR>', { desc = 'toggle relative number'})
+vim.keymap.set('n', '<leader>m', '<cmd> set nu! <CR>', { desc = 'toggle line number' })
+vim.keymap.set('n', '<leader>rm', '<cmd> set rnu! <CR>', { desc = 'toggle relative number' })
+vim.keymap.set('n', '<leader>fm', vim.lsp.buf.format, { desc = 'Format file' })
 
 -- [[ Highlight on yank ]]
 -- See `:help vim.highlight.on_yank()`
@@ -115,11 +123,13 @@ vim.keymap.set('n', '<leader>/', function()
 end, { desc = '[/] Fuzzily search in current buffer' })
 
 vim.keymap.set('n', '<leader>sf', require('telescope.builtin').find_files, { desc = '[S]earch [F]iles' })
-vim.keymap.set('n', '<leader>s.', function() require('telescope.builtin').find_files({hidden=true}) end, { desc = '[S]earch Hidden ([.])Files' })
+vim.keymap.set('n', '<leader>s.', function() require('telescope.builtin').find_files({ hidden = true }) end,
+  { desc = '[S]earch Hidden ([.])Files' })
 vim.keymap.set('n', '<leader>sh', require('telescope.builtin').help_tags, { desc = '[S]earch [H]elp' })
 vim.keymap.set('n', '<leader>sw', require('telescope.builtin').grep_string, { desc = '[S]earch current [W]ord' })
 vim.keymap.set('n', '<leader>sg', require('telescope.builtin').live_grep, { desc = '[S]earch by [G]rep' })
 vim.keymap.set('n', '<leader>sd', require('telescope.builtin').diagnostics, { desc = '[S]earch [D]iagnostics' })
+vim.keymap.set('n', '<leader>st', require('telescope.builtin').git_files, { desc = '[S]earch Gi[t]' })
 
 -- [[ Configure Treesitter ]]
 -- See `:help nvim-treesitter`
@@ -131,7 +141,7 @@ require('nvim-treesitter.configs').setup {
   auto_install = false,
 
   highlight = { enable = true },
-  indent = { enable = true, disable = { 'python' } },
+  indent = { enable = false, disable = { 'python' } },
   incremental_selection = {
     enable = true,
     keymaps = {
@@ -244,12 +254,14 @@ end
 --  Add any additional override configuration in the following tables. They will be passed to
 --  the `settings` field of the server config. You must look up that documentation yourself.
 local servers = {
-  -- clangd = {},
+  clangd = {},
   -- gopls = {},
   -- pyright = {},
   -- rust_analyzer = {},
-  -- tsserver = {},
-  
+  eslint = {},
+  tsserver = {filetypes = {"typescript", "typescriptreact", "typescript.tsx"}},
+  texlab = {},
+  jdtls = {},
   lua_ls = {
     Lua = {
       workspace = { checkThirdParty = false },
@@ -269,7 +281,7 @@ capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
 local mason_lspconfig = require 'mason-lspconfig'
 
 mason_lspconfig.setup {
-  ensure_installed = vim.tbl_keys(servers),
+  ensure_installed = vim.tbl_keys(servers)
 }
 
 mason_lspconfig.setup_handlers {
@@ -323,8 +335,35 @@ cmp.setup {
   },
   sources = {
     { name = 'nvim_lsp' },
+    { name = 'buffer' },
+    { name = 'path' },
     { name = 'luasnip' },
+    { name = 'omni' },
+    { name = 'nvim_lua' }
   },
+}
+vim.g.vimtex_view_method = 'zathura'
+
+--nvim-tree setup
+--
+
+local tree = require 'nvim-tree'
+
+local function nvim_tree_on_attach(bufnr)
+  local api = require "nvim-tree.api"
+
+  local function opts(desc)
+    return { "nvim-tree: " .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
+  end
+
+  api.config.mappings.default_on_attach(bufnr)
+end
+
+vim.keymap.set('n', '<C-n>', '<cmd> NvimTreeToggle <CR>', { desc = { 'Toggle nvimtree' } })
+vim.keymap.set('n', '<leader>t', '<cmd> NvimTreeFocus <CR>', { desc = { 'Focus nvimtree' } })
+
+tree.setup {
+  on_attach = nvim_tree_on_attach,
 }
 
 -- The line beneath this is called `modeline`. See `:help modeline`
